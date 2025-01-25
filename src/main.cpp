@@ -39,6 +39,27 @@ int main(int argc, char* argv[])
 	return EXIT_SUCCESS;
 }
 
+void WindowCallback::OnSize(bqWindow* w)
+{
+	Game* app = (Game*)w->GetUserData();
+	if (app)
+	{
+		app->m_gs->OnWindowSize();
+		app->m_gs->SetViewport(0, 0, (uint32_t)w->GetCurrentSize()->x, (uint32_t)w->GetCurrentSize()->y);
+		app->m_gs->SetScissorRect(bqVec4f(0.f, 0.f, (float)w->GetCurrentSize()->x, (float)w->GetCurrentSize()->y));
+	}
+}
+
+void WindowCallback::OnClose(bqWindow* w)
+{
+	Game* app = (Game*)w->GetUserData();
+	if (app)
+	{
+		w->SetVisible(false);
+		app->Quit();
+	}
+}
+
 Game::Game()
 {
 }
@@ -50,11 +71,44 @@ Game::~Game()
 
 bool Game::Init()
 {
+	bqFramework::Start(&m_frameworkCallback);
+	m_dt = bqFramework::GetDeltaTime();
+	m_windowCallback.SetUserData(this);
+	m_window = bqFramework::CreateSystemWindow(&m_windowCallback);
+	if (m_window && bqFramework::GetGSNum())
+	{
+		m_window->SetPositionAndSize(10, 10, 800, 600);
+		m_window->SetVisible(true);
+		m_window->SetUserData(this);
+	}
+	else
+	{
+		APP_PRINT_ERROR;
+		return false;
+	}
+
+	m_gs = bqFramework::CreateGS(bqFramework::GetGSUID(0));
+	if (!m_gs)
+	{
+		APP_PRINT_ERROR;
+		return false;
+	}
+
+	if (!m_gs->Init(m_window, 0))
+	{
+		APP_PRINT_ERROR;
+		return false;
+	}
+
 	return true;
 }
 
 void Game::Run()
 {
+	while (m_run)
+	{
+		bqFramework::Update();
+	}
 }
 
 void Game::OnDraw()

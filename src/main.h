@@ -43,8 +43,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "badcoiq/GUI/bqGUI.h"
 #include "badcoiq/system/bqWindow.h"
 
-class FrameworkCallback;
-class WindowCallback; 
+#define APP_PRINT_ERROR bqLog::PrintError("%s %s %l\n", BQ_FILE, BQ_FUNCTION, BQ_LINE)
+
+class FrameworkCallback : public bqFrameworkCallback
+{
+public:
+	FrameworkCallback() {}
+	virtual ~FrameworkCallback() {}
+	virtual void OnMessage() {}
+};
+
+class WindowCallback : public bqWindowCallback
+{
+public:
+	WindowCallback() {}
+	virtual ~WindowCallback() {}
+	BQ_PLACEMENT_ALLOCATOR(WindowCallback);
+
+	virtual void OnSizing(bqWindow* w) override{}
+	virtual void OnSize(bqWindow* w) override;
+	virtual void OnClose(bqWindow* w) override;
+};
+
 class GUIDrawTextCallback;
 
 class Game
@@ -53,10 +73,10 @@ class Game
 
 	bqString m_drawingText;
 
-	FrameworkCallback* m_frameworkCallback = 0;
-	WindowCallback* m_windowCallback = 0;
+	FrameworkCallback m_frameworkCallback;
+	WindowCallback m_windowCallback;
 	GUIDrawTextCallback* m_textDrawCallback = 0;
-	bool m_isRun = true;
+	bool m_run = true;
 	
 	bqWindow* m_window = 0;
 
@@ -69,7 +89,7 @@ public:
 
 	bool Init();
 	void Run();
-	void Quit() { m_isRun = false; }
+	void Quit() { m_run = false; }
 
 	bqGS* GetGS() { return m_gs; }
 	bqWindow* GetWindow() { return m_window; }
@@ -78,53 +98,9 @@ public:
 	void OnDraw();
 	
 	float* m_dt = 0;
-
 };
 
-class FrameworkCallback : public bqFrameworkCallback
-{
-public:
-	FrameworkCallback() {}
-	virtual ~FrameworkCallback() {}
-	BQ_PLACEMENT_ALLOCATOR(FrameworkCallback);
-	
-	virtual void OnMessage() override
-	{
-	}
-};
 
-class WindowCallback : public bqWindowCallback
-{
-public:
-	WindowCallback() {}
-	virtual ~WindowCallback() {}
-	BQ_PLACEMENT_ALLOCATOR(WindowCallback);
-
-	virtual void OnSizing(bqWindow* w) override 
-	{
-	}
-
-	virtual void OnSize(bqWindow* w) override
-	{
-		Game* app = (Game*)w->GetUserData();
-		if (app)
-		{
-			app->m_gs->OnWindowSize();
-			app->m_gs->SetViewport(0, 0, (uint32_t)w->GetCurrentSize()->x, (uint32_t)w->GetCurrentSize()->y);
-			app->m_gs->SetScissorRect(bqVec4f(0.f, 0.f, (float)w->GetCurrentSize()->x, (float)w->GetCurrentSize()->y));
-		}
-	}
-
-	virtual void OnClose(bqWindow* w) override 
-	{
-		Game* app = (Game*)w->GetUserData();
-		if (app)
-		{
-			w->SetVisible(false);
-			app->Quit();
-		}
-	}
-};
 
 class GUIDrawTextCallback : public bqGUIDrawTextCallback
 {
